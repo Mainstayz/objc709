@@ -58,3 +58,4 @@ fastlane/screenshots
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
+objc4-709/objc.xcodeproj/project.xcworkspace/xcshareddata
