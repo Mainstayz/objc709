@@ -697,16 +697,19 @@ static void methodizeClass(Class cls)
     method_list_t *list = ro->baseMethods();
     if (list) {
         prepareMethodLists(cls, &list, 1, YES, isBundleClass(cls));
+        // 注入方法
         rw->methods.attachLists(&list, 1);
     }
 
     property_list_t *proplist = ro->baseProperties;
     if (proplist) {
+        // 注入属性
         rw->properties.attachLists(&proplist, 1);
     }
 
     protocol_list_t *protolist = ro->baseProtocols;
     if (protolist) {
+        
         rw->protocols.attachLists(&protolist, 1);
     }
 
@@ -1728,21 +1731,28 @@ static Class realizeClass(Class cls)
     // fixme verify class is not in an un-dlopened part of the shared cache?
 
     ro = (const class_ro_t *)cls->data();
+    
+    // 初始化 cls->data();
     if (ro->flags & RO_FUTURE) {
+        // 未实现的类
         // This was a future class. rw data is already allocated.
         rw = cls->data();
         ro = cls->data()->ro;
         cls->changeInfo(RW_REALIZED|RW_REALIZING, RW_FUTURE);
     } else {
+        // 一般的类，申请可写 的classData
         // Normal class. Allocate writeable class data.
+        // 分配sizeof(class_rw_t)个长度为1的连续空间，函数返回一个指向分配起始地址的指针
         rw = (class_rw_t *)calloc(sizeof(class_rw_t), 1);
         rw->ro = ro;
         rw->flags = RW_REALIZED|RW_REALIZING;
         cls->setData(rw);
     }
 
+    // 是否元类
     isMeta = ro->flags & RO_META;
 
+    // 版本
     rw->version = isMeta ? 7 : 0;  // old runtime went up to 6
 
 
@@ -1759,9 +1769,10 @@ static Class realizeClass(Class cls)
     // Realize superclass and metaclass, if they aren't already.
     // This needs to be done after RW_REALIZED is set above, for root classes.
     // This needs to be done after class index is chosen, for root metaclasses.
+    // 设置父类 以及 元类 cls->data
     supercls = realizeClass(remapClass(cls->superclass));
     metacls = realizeClass(remapClass(cls->ISA()));
-
+//  用于标记是否支持优化的 isa 指针，其字面含义意思是 isa 的内容不再是类的指针了，而是包含了更多信息，比如引用计数，析构状态，被其他 weak 变量引用情况。
 #if SUPPORT_NONPOINTER_ISA
     // Disable non-pointer isa for some classes and/or platforms.
     // Set instancesRequireRawIsa.
@@ -1798,9 +1809,11 @@ static Class realizeClass(Class cls)
 #endif
 
     // Update superclass and metaclass in case of remapping
+    // 更新 父类， 元类
     cls->superclass = supercls;
     cls->initClassIsa(metacls);
-
+    
+    // 调整 变量偏移
     // Reconcile instance variable offsets / layout.
     // This may reallocate class_ro_t, updating our ro variable.
     if (supercls  &&  !isMeta) reconcileInstanceVariables(cls, supercls, ro);
@@ -1817,6 +1830,7 @@ static Class realizeClass(Class cls)
     }
 
     // Connect this class to its superclass's subclass lists
+    // 给自己添到到父类的 subclass list 中去
     if (supercls) {
         addSubclass(supercls, cls);
     } else {
@@ -1824,6 +1838,7 @@ static Class realizeClass(Class cls)
     }
 
     // Attach categories
+    // 注入分类方法
     methodizeClass(cls);
 
     return cls;
@@ -4385,22 +4400,26 @@ class_setVersion(Class cls, int version)
     cls->data()->version = version;
 }
 
-
+// !!!:方法链表中查找方法
 static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list)
 {
     assert(list);
 
     const method_t * const first = &list->first;
     const method_t *base = first;
-    const method_t *probe;
+    const method_t *probe; //探测器
+    /*
+     (lldb) p sizeof(method_t)
+     (unsigned long) $2 = 24
+     */
+    
     uintptr_t keyValue = (uintptr_t)key;
     uint32_t count;
-    
     for (count = list->count; count != 0; count >>= 1) {
         probe = base + (count >> 1);
         
         uintptr_t probeValue = (uintptr_t)probe->name;
-        
+        // 直接比较地址
         if (keyValue == probeValue) {
             // `probe` is a match.
             // Rewind looking for the *first* occurrence of this value.
@@ -4434,6 +4453,7 @@ static method_t *search_method_list(const method_list_t *mlist, SEL sel)
         return findMethodInSortedMethodList(sel, mlist);
     } else {
         // Linear search of unsorted method list
+        // 线性搜索未排序的方法列表
         for (auto& meth : *mlist) {
             if (meth.name == sel) return &meth;
         }
@@ -4452,6 +4472,9 @@ static method_t *search_method_list(const method_list_t *mlist, SEL sel)
 
     return nil;
 }
+
+
+// !!!: 在类中查找方法
 
 static method_t *
 getMethodNoSuper_nolock(Class cls, SEL sel)
@@ -4594,6 +4617,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
     // Optimistic cache lookup
     if (cache) {
+        // 汇编实现
         imp = cache_getImp(cls, sel);
         if (imp) return imp;
     }
@@ -4615,7 +4639,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         // a race while the lock is down.
         runtimeLock.unlockRead();
         runtimeLock.write();
-
+        // 对Class进行初始化
         realizeClass(cls);
 
         runtimeLock.unlockWrite();

@@ -524,7 +524,7 @@ struct locstamped_category_list_t {
 
 #endif
 
-
+// class read only struct
 struct class_ro_t {
     uint32_t flags;
     uint32_t instanceStart;
