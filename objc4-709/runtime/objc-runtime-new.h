@@ -33,9 +33,10 @@ typedef uintptr_t cache_key_t;
 
 struct swift_class_t;
 
-
+// 水桶？？
 struct bucket_t {
 private:
+    // 一个指针类型 ----> 暗示 SEL 的地址？
     cache_key_t _key;
     IMP _imp;
 
@@ -51,10 +52,13 @@ public:
 
 struct cache_t {
     struct bucket_t *_buckets;
+    
+    //uint32_t
     mask_t _mask;
     mask_t _occupied;
 
 public:
+    // 结构体指针
     struct bucket_t *buckets();
     mask_t mask();
     mask_t occupied();
@@ -90,6 +94,7 @@ typedef struct classref * classref_t;
 *   (e.g. method list fixup markers)
 **********************************************************************/
 template <typename Element, typename List, uint32_t FlagMask>
+// 元素 是 结构体类型，比如。method_t
 struct entsize_list_tt {
     uint32_t entsizeAndFlags;
     uint32_t count;
@@ -203,12 +208,13 @@ struct entsize_list_tt {
     };
 };
 
-
+// 方法结构体
 struct method_t {
     SEL name;
     const char *types;
     IMP imp;
-
+    
+    // 根据 SEL 地址排序 ----> 这就是为甚么，同名方法连着在一起的原因
     struct SortBySELAddress :
         public std::binary_function<const method_t&,
                                     const method_t&, bool>
@@ -219,6 +225,7 @@ struct method_t {
     };
 };
 
+// 变量结构体
 struct ivar_t {
 #if __x86_64__
     // *offset was originally 64-bit on some x86_64 platforms.
@@ -228,25 +235,29 @@ struct ivar_t {
     // Some code uses all 64 bits. class_addIvar() over-allocates the 
     // offset for their benefit.
 #endif
+    // 偏移
     int32_t *offset;
+    
     const char *name;
     const char *type;
     // alignment is sometimes -1; use alignment() instead
     uint32_t alignment_raw;
     uint32_t size;
-
+    // 对其
     uint32_t alignment() const {
         if (alignment_raw == ~(uint32_t)0) return 1U << WORD_SHIFT;
         return 1 << alignment_raw;
     }
 };
 
+// 熟悉结构体///？？？？？ 只有名字和属性
 struct property_t {
     const char *name;
     const char *attributes;
 };
 
 // Two bits of entsize are used for fixup markers.
+// 指针列表结构体
 struct method_list_t : entsize_list_tt<method_t, method_list_t, 0x3> {
     bool isFixedUp() const;
     void setFixedUp();
@@ -259,6 +270,7 @@ struct method_list_t : entsize_list_tt<method_t, method_list_t, 0x3> {
     }
 };
 
+// 变量结构体
 struct ivar_list_t : entsize_list_tt<ivar_t, ivar_list_t, 0> {
     bool containsIvar(Ivar ivar) const {
         return (ivar >= (Ivar)&*begin()  &&  ivar < (Ivar)&*end());
@@ -533,14 +545,20 @@ struct class_ro_t {
     uint32_t reserved;
 #endif
 
+    // 变量布局
     const uint8_t * ivarLayout;
     
+    // 类名
     const char * name;
+    // 方法列表
     method_list_t * baseMethodList;
+    // 属性裂变
     protocol_list_t * baseProtocols;
+    // 变量列表
     const ivar_list_t * ivars;
-
+    // 弱引用 布局
     const uint8_t * weakIvarLayout;
+    // 属性列表
     property_list_t *baseProperties;
 
     method_list_t *baseMethods() const {
@@ -565,7 +583,9 @@ struct class_ro_t {
 * count/begin/end iterate the underlying metadata elements
 **********************************************************************/
 template <typename Element, typename List>
+// 列表数组。。。。？？哈希表
 class list_array_tt {
+    
     struct array_t {
         uint32_t count;
         List* lists[0];
@@ -579,7 +599,9 @@ class list_array_tt {
     };
 
  protected:
+    //迭代器
     class iterator {
+        // 指向指针的指针
         List **lists;
         List **listsEnd;
         typename List::iterator m, mEnd;
@@ -692,17 +714,25 @@ class list_array_tt {
         }
     }
 
+    
+    
+    // !!!: 头插入法
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
 
+        
         if (hasArray()) {
             // many lists -> many lists
             uint32_t oldCount = array()->count;
             uint32_t newCount = oldCount + addedCount;
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
-            memmove(array()->lists + addedCount, array()->lists, 
+            
+            
+            //  由 array()->lists 所指内存区域复制 oldCount 个字节到 array()->lists + addedCount所指内存区域。后移
+            memmove(array()->lists + addedCount, array()->lists,
                     oldCount * sizeof(array()->lists[0]));
+            // 讲 addedLists 所指内存复制 addedCount * sizeof(array()->lists[0])) 到 array()->lists
             memcpy(array()->lists, addedLists, 
                    addedCount * sizeof(array()->lists[0]));
         }
@@ -809,9 +839,11 @@ struct class_rw_t {
     property_array_t properties;
     protocol_array_t protocols;
 
+    
     Class firstSubclass;
     Class nextSiblingClass;
 
+    // 解码 --- 符号重组
     char *demangledName;
 
 #if SUPPORT_INDEXED_ISA
@@ -1038,6 +1070,7 @@ public:
     void setClassArrayIndex(unsigned Idx) {
 #if SUPPORT_INDEXED_ISA
         // 0 is unused as then we can rely on zero-initialisation from calloc.
+        // 0未使用
         assert(Idx > 0);
         data()->index = Idx;
 #endif
@@ -1060,6 +1093,12 @@ public:
     }
 };
 
+/*
+ struct objc_object {
+    private:
+    isa_t isa;
+ }
+ */
 
 struct objc_class : objc_object {
     // Class ISA;
@@ -1322,7 +1361,7 @@ struct swift_class_t : objc_class {
     }
 };
 
-
+// 分类结构体
 struct category_t {
     const char *name;
     classref_t cls;
@@ -1352,11 +1391,13 @@ struct message_ref_t {
 };
 
 
-extern Method protocol_getMethod(protocol_t *p, SEL sel, bool isRequiredMethod, bool isInstanceMethod, bool recursive);
+extern Method protocol_getMethod(protocol_t *p, SEL sel, bool isRequiredMethod, bool isInstanceMethod, bool recursive/*递归*/);
 
+// 遍历已经初始化的 Class 和  subClass
+// 获取一个类，先遍历其子类，之后在便利兄弟类
 static inline void
 foreach_realized_class_and_subclass_2(Class top, unsigned& count,
-                                      std::function<bool (Class)> code) 
+                                      std::function<bool (Class)> code)
 {
     // runtimeLock.assertWriting();
     assert(top);
@@ -1365,17 +1406,23 @@ foreach_realized_class_and_subclass_2(Class top, unsigned& count,
         if (--count == 0) {
             _objc_fatal("Memory corruption in class list.");
         }
+        // 如果 code function返回NO就 终止
         if (!code(cls)) break;
-
+        // 类似于 树结构， 一个类 可以有 很多个 子类
+        // 如果有第一个子类
         if (cls->data()->firstSubclass) {
             cls = cls->data()->firstSubclass;
         } else {
+            // nextSiblingClass 兄弟类
+            // 如果没有兄弟类，获取父类
             while (!cls->data()->nextSiblingClass  &&  cls != top) {
+                
                 cls = cls->superclass;
                 if (--count == 0) {
                     _objc_fatal("Memory corruption in class list.");
                 }
             }
+            //
             if (cls == top) break;
             cls = cls->data()->nextSiblingClass;
         }
