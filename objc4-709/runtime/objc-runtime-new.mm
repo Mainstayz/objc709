@@ -336,6 +336,8 @@ void *object_getIndexedIvars(id obj)
 * Reallocates rw->ro if necessary to make it writeable.
 * Locking: runtimeLock must be held by the caller.
 **********************************************************************/
+
+
 static class_ro_t *make_ro_writeable(class_rw_t *rw)
 {
     runtimeLock.assertWriting();
@@ -3902,6 +3904,8 @@ objc_copyClassList(unsigned int *outCount)
 * Returns pointers to all protocols.
 * Locking: read-locks runtimeLock
 **********************************************************************/
+
+// MARK: 0730 看到这里
 Protocol * __unsafe_unretained * 
 objc_copyProtocolList(unsigned int *outCount) 
 {

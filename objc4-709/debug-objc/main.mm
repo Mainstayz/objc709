@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 // 1. 引入runtime库
+#import "objc.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
@@ -35,39 +36,39 @@ void hookStart(){
 
 
 
-@interface Person: NSObject
-- (void)say;
-@end
-@implementation Person
-- (void)say{
-    NSLog(@"%s",__func__);
-}
-@end
-
-@implementation Person (Category)
-- (void)say{
-    NSLog(@"1111");
-}
-@end
-@implementation Person (Category1)
-- (void)say{
-    NSLog(@"11112222");
-}
-@end
-@implementation Person (Category2)
-- (void)say{
-    NSLog(@"11112222");
-}
-@end
+//@interface Person: NSObject
+//- (void)say;
+//@end
+//@implementation Person
+//- (void)say{
+//    NSLog(@"%s",__func__);
+//}
+//@end
+//
+//@implementation Person (Category)
+//- (void)say{
+//    NSLog(@"1111");
+//}
+//@end
+//@implementation Person (Category1)
+//- (void)say{
+//    NSLog(@"11112222");
+//}
+//@end
+//@implementation Person (Category2)
+//- (void)say{
+//    NSLog(@"11112222");
+//}
+//@end
 
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        Person *p = [[Person alloc] init];
-        [p say];
-        
-        int count = NULL;
-    
+        NSArray *a = @[@"one",@"two"];
+//        void* indexedIvars = object_getIndexedIvars(a);
+//        NSLog(@"%@", *(id *)(indexedIvars + 0));
+//        NSLog(@"%@", *(id *)(indexedIvars + sizeof(NSArray*)));
+//        NSLog(@"%@", *(id *)(indexedIvars + sizeof(NSArray*)*2));
         
 
     }

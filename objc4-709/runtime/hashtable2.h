@@ -65,7 +65,7 @@ typedef struct {
 		    e.g. if data hashes over a string key, the string must not be changed
 	2- isEqual (data1, data2) => data1= data2
  */
-
+// !!!: 哈希表的定义
 typedef struct {
     const NXHashTablePrototype	*prototype OBJC_HASH_AVAILABILITY;
     unsigned			count OBJC_HASH_AVAILABILITY;

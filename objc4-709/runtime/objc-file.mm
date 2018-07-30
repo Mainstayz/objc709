@@ -55,7 +55,7 @@ T* getDataSection(const headerType *mhdr, const char *sectname,
     }
 
 //      function name                 content type     section name
-GETSECT(_getObjc2SelectorRefs,        SEL,             "__objc_selrefs"); 
+GETSECT( _getObjc2SelectorRefs,        SEL,             "__objc_selrefs"); 
 GETSECT(_getObjc2MessageRefs,         message_ref_t,   "__objc_msgrefs"); 
 GETSECT(_getObjc2ClassRefs,           Class,           "__objc_classrefs");
 GETSECT(_getObjc2SuperRefs,           Class,           "__objc_superrefs");
