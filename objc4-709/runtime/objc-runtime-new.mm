@@ -2407,19 +2407,29 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
 
     // Discover classes. Fix up unresolved future classes. Mark bundle classes.
-
+    // !!!： 获取所有的类
     for (EACH_HEADER) {
         if (! mustReadClasses(hi)) {
             // Image is sufficiently optimized that we need not call readClass()
             continue;
         }
+        
+        /**
+         
+         bool isBundle() {
+            return mhdr()->filetype == MH_BUNDLE;
+         }
 
+        */
         bool headerIsBundle = hi->isBundle();
+        // 是否支持缓存优化
         bool headerIsPreoptimized = hi->isPreoptimized();
-
+        
+        // 类中获取所有的class
         classref_t *classlist = _getObjc2ClassList(hi, &count);
         for (i = 0; i < count; i++) {
             Class cls = (Class)classlist[i];
+            // 读取cls的信息
             Class newCls = readClass(cls, headerIsBundle, headerIsPreoptimized);
 
             if (newCls != cls  &&  newCls) {
@@ -2563,7 +2573,8 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
     ts.log("IMAGE TIMES: realize future classes");
 
-    // Discover categories. 
+    // Discover categories.
+    // 加载所有的分类
     for (EACH_HEADER) {
         category_t **catlist = 
             _getObjc2CategoryList(hi, &count);
@@ -2571,8 +2582,10 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
         for (i = 0; i < count; i++) {
             category_t *cat = catlist[i];
+            // 去哈希表找找重映射class
             Class cls = remapClass(cat->cls);
-
+            
+            // 如果该分类没有主类。。。。????
             if (!cls) {
                 // Category's target class is missing (probably weak-linked).
                 // Disavow any knowledge of this category.
@@ -2586,15 +2599,19 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
             }
 
             // Process this category. 
-            // First, register the category with its target class. 
-            // Then, rebuild the class's method lists (etc) if 
+            // First, register the category with its target class.
+            // 注册 该分类 以及 主类
+            // Then, rebuild the class's method lists (etc) if
+            // 重构 class 的方法列表
             // the class is realized. 
             bool classExists = NO;
             if (cat->instanceMethods ||  cat->protocols  
                 ||  cat->instanceProperties) 
             {
+                // 先注册到哈希表
                 addUnattachedCategoryForClass(cat, cls, hi);
                 if (cls->isRealized()) {
+                    // 重建方法表
                     remethodizeClass(cls);
                     classExists = YES;
                 }

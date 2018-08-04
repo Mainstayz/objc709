@@ -195,6 +195,7 @@ static void call_class_loads(void)
     // Call all +loads for the detached list.
     for (i = 0; i < used; i++) {
         Class cls = classes[i].cls;
+        //typedef void(*load_method_t)(id, SEL);
         load_method_t load_method = (load_method_t)classes[i].method;
         if (!cls) continue; 
 

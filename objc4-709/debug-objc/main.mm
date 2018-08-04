@@ -39,6 +39,9 @@ void hookStart(){
 - (void)say;
 @end
 @implementation Person
++ (void)initialize {
+    NSLog(@"xxxx");
+}
 - (void)say{
     NSLog(@"%s",__func__);
 }
